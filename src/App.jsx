@@ -21,6 +21,25 @@ function saveAuth(value) {
   }
 }
 
+async function readApiResponse(response) {
+  if (response.status === 204) return null;
+
+  const contentType = response.headers.get("Content-Type") || "";
+  const body = await response.text();
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+
+    if (!contentType.toLowerCase().includes("application/json")) {
+      throw new Error(
+        `The backend returned a non-JSON error (HTTP ${response.status}). Check the backend deployment logs; its database connection may be unavailable.`,
+      );
+    }
+    throw new Error(`The backend returned an invalid JSON response (HTTP ${response.status}).`);
+  }
+}
+
 async function apiRequest(path, options = {}, retried = false) {
   const auth = readAuth();
   const headers = new Headers(options.headers || {});
@@ -37,7 +56,7 @@ async function apiRequest(path, options = {}, retried = false) {
     headers,
     credentials: "omit",
   });
-  const payload = response.status === 204 ? null : await response.json();
+  const payload = await readApiResponse(response);
 
   if (response.status === 401 && !retried && auth?.tokens?.refresh_token && path !== "/api/auth/refresh") {
     const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
@@ -46,7 +65,7 @@ async function apiRequest(path, options = {}, retried = false) {
       body: JSON.stringify({ refresh_token: auth.tokens.refresh_token }),
       credentials: "omit",
     });
-    const refreshPayload = await refreshResponse.json();
+    const refreshPayload = await readApiResponse(refreshResponse);
     if (refreshResponse.ok) {
       const renewedAuth = { ...auth, tokens: refreshPayload.tokens };
       saveAuth(renewedAuth);

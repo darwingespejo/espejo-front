@@ -40,7 +40,15 @@ HTTPS origin serving this frontend.
 
 ## Render
 
-The included `render.yaml` defines this repository as a Render Static Site.
-Create the site from the Blueprint, set `VITE_API_BASE_URL` to the deployed API
-origin, then add the resulting frontend HTTPS origin to the backend's
-`CORS_ALLOWED_ORIGINS`.
+The included `render.yaml` defines this repository as a Render Static Site,
+builds with Node.js 22.12.0, installs the locked dependencies with `npm ci`,
+publishes `dist/`, and rewrites application routes to `index.html`.
+
+1. Create a Render Static Site from this repository's Blueprint.
+2. Set `VITE_API_BASE_URL` to the deployed backend API origin without a
+   trailing slash (for example, `https://your-api.onrender.com`).
+3. Add the frontend's exact HTTPS origin (for example,
+   `https://your-frontend.onrender.com`) to the backend's
+   `CORS_ALLOWED_ORIGINS`.
+4. Keep database credentials and JWT signing secrets exclusively on the
+   backend. They are not needed by this static site.
